@@ -1,0 +1,108 @@
+const express = require('express');
+const router = express.Router();
+const mysql = require("mysql");
+const db = mysql.createConnection({
+    user: "root",
+    host: "localhost",
+    password: "",
+    database: "secwebdb",
+});
+const multer = require("multer");
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, "./images/");
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + "--" + file.originalname);
+    },
+});
+
+const upload = multer({
+    storage: storage,
+    fileFilter: function (_req, file, cb) {
+        checkFileType(file, cb);
+    }
+}); //multer : midlleware for uploading files
+
+function checkFileType(file, cb) {
+    // Allowed ext
+    const filetypes = /jpeg|jpg|png|gif/;
+    // Check ext
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    // Check mime
+    const mimetype = filetypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+        return cb(null, true);
+    } else {
+        cb('Error: Images Only!');
+    }
+}
+
+
+
+
+
+router.get('/', (req, res) => {
+    db.query("SELECT * FROM clients", (err, result) => {
+        if (err) {
+            console.log(err);
+        } else {
+            res.render('index', { result });
+            console.log(result);
+        }
+    });
+})
+router.post('/', upload.single("file"), (req, res) => {
+
+    const code = req.body.code;
+    const nom = req.body.nom;
+    const prenom = req.body.prenom;
+    const address = req.body.address;
+    const telephone = req.body.telephone;
+    const file = req.body.file;
+    db.query(
+        `INSERT INTO clients (code, nom, prenom, address, telephone, image) VALUES ("${code}","${nom}","${prenom}", "${address}", "${telephone}", "${file}");`,
+        (err, result) => {
+            if (err) {
+                console.log(err);
+            } else {
+                res.redirect('/')
+            }
+        }
+    );
+});
+
+
+
+router.post("/modify", (req, res) => {
+    const code = req.body.code;
+    const nom = req.body.nom;
+    const prenom = req.body.prenom;
+    const address = req.body.address;
+    const telephone = req.body.telephone;
+    const file = req.body.file;
+    db.query(
+        `UPDATE clients SET code="${code}", nom = "${nom}", prenom = "${prenom}", address="${address}", telephone = "${telephone}, image = "${file}" WHERE nom = "${nom}"`,
+        (err, result) => {
+            if (err) {
+                console.log(err);
+            } else {
+                res.redirect('/')
+            }
+        }
+    );
+});
+
+router.post("/delete", (req, res) => {
+    const nom = req.body.nom;
+    db.query(`DELETE FROM clients WHERE nom = "${nom}"`, (err, result) => {
+        if (err) {
+            console.log(err);
+        } else {
+            res.redirect('/')
+        }
+    });
+});
+
+module.exports = router;
